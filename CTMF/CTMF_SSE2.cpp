@@ -1,4 +1,4 @@
-#ifdef CTMF_X86
+#if defined(CTMF_X86) || defined(__ARM_NEON__)
 #include "CTMF.h"
 
 template<typename pixel_t>

@@ -40,16 +40,18 @@
 
 using namespace std::literals;
 
-#ifdef CTMF_X86
+#if defined(CTMF_X86) || defined(__ARM_NEON__)
 template<typename pixel_t> extern void filterRadius2_sse2(const VSFrameRef * src, VSFrameRef * dst, const int plane, const VSAPI * vsapi) noexcept;
+#if defined(CTMF_X86)
 template<typename pixel_t> extern void filterRadius2_avx2(const VSFrameRef * src, VSFrameRef * dst, const int plane, const VSAPI * vsapi) noexcept;
 template<typename pixel_t> extern void filterRadius2_avx512(const VSFrameRef * src, VSFrameRef * dst, const int plane, const VSAPI * vsapi) noexcept;
-
+#endif
 template<typename pixel_t, uint16_t bins> extern void ctmfHelper_sse2(const void * srcp, void * dstp, const CTMFData * const VS_RESTRICT d, const int width, const int height, const int stride, const bool padLeft, const bool padRight) noexcept;
+#if defined(CTMF_X86)
 template<typename pixel_t, uint16_t bins> extern void ctmfHelper_avx2(const void * srcp, void * dstp, const CTMFData * const VS_RESTRICT d, const int width, const int height, const int stride, const bool padLeft, const bool padRight) noexcept;
 template<typename pixel_t, uint16_t bins> extern void ctmfHelper_avx512(const void * srcp, void * dstp, const CTMFData * const VS_RESTRICT d, const int width, const int height, const int stride, const bool padLeft, const bool padRight) noexcept;
 #endif
-
+#endif
 template<typename pixel_t>
 static auto copyPad(const VSFrameRef * src, VSFrameRef * dst, const int plane, const VSAPI * vsapi) noexcept {
     const auto width = vsapi->getFrameWidth(src, plane);
@@ -515,6 +517,30 @@ static void VS_CC ctmfCreate(const VSMap * in, VSMap * out, void * userData, VSC
                         d->ctmfHelper = ctmfHelper_avx2<uint16_t, 256>;
                 }
             } else if ((opt == 0 && iset >= 2) || opt == 2) {
+                if (d->isRadius2) {
+                    if (d->vi->format->bytesPerSample == 1)
+                        d->filterRadius2 = filterRadius2_sse2<uint8_t>;
+                    else if (d->vi->format->bytesPerSample == 2)
+                        d->filterRadius2 = filterRadius2_sse2<uint16_t>;
+                    else
+                        d->filterRadius2 = filterRadius2_sse2<float>;
+                } else {
+                    if (d->vi->format->bitsPerSample == 8)
+                        d->ctmfHelper = ctmfHelper_sse2<uint8_t, 16>;
+                    else if (d->vi->format->bitsPerSample == 10)
+                        d->ctmfHelper = ctmfHelper_sse2<uint16_t, 32>;
+                    else if (d->vi->format->bitsPerSample == 12)
+                        d->ctmfHelper = ctmfHelper_sse2<uint16_t, 64>;
+                    else if (d->vi->format->bitsPerSample == 14)
+                        d->ctmfHelper = ctmfHelper_sse2<uint16_t, 128>;
+                    else if (d->vi->format->bitsPerSample == 16)
+                        d->ctmfHelper = ctmfHelper_sse2<uint16_t, 256>;
+                }
+            }
+#endif
+#ifdef __ARM_NEON__
+            const int iset = instrset_detect();
+            if ((opt == 0 && iset >= 2) || opt == 2) {
                 if (d->isRadius2) {
                     if (d->vi->format->bytesPerSample == 1)
                         d->filterRadius2 = filterRadius2_sse2<uint8_t>;

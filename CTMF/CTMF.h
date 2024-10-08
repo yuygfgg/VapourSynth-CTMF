@@ -9,7 +9,7 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
-#ifdef CTMF_X86
+#if defined(CTMF_X86) || defined(__ARM_NEON__)
 #include "VCL2/vectorclass.h"
 #endif
 

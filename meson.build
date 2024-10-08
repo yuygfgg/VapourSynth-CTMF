@@ -8,6 +8,30 @@ sources = [
   'CTMF/CTMF.cpp',
   'CTMF/CTMF.h'
 ]
+sources += [
+    'CTMF/CTMF_SSE2.cpp',
+    'CTMF/VCL2/instrset.h',
+    'CTMF/VCL2/instrset_detect.cpp',
+    'CTMF/VCL2/vector_convert.h',
+    'CTMF/VCL2/vectorclass.h',
+    'CTMF/VCL2/vectorf128.h',
+    'CTMF/VCL2/vectorf256.h',
+    'CTMF/VCL2/vectorf256e.h',
+    'CTMF/VCL2/vectorf512.h',
+    'CTMF/VCL2/vectorf512e.h',
+    'CTMF/VCL2/vectori128.h',
+    'CTMF/VCL2/vectori256.h',
+    'CTMF/VCL2/vectori256e.h',
+    'CTMF/VCL2/vectori512.h',
+    'CTMF/VCL2/vectori512e.h',
+    'CTMF/VCL2/vectori512s.h',
+    'CTMF/VCL2/vectori512se.h',
+    'CTMF/VCL2/vectormath_common.h',
+    'CTMF/VCL2/vectormath_exp.h',
+    'CTMF/VCL2/vectormath_hyp.h',
+    'CTMF/VCL2/vectormath_lib.h',
+    'CTMF/VCL2/vectormath_trig.h'
+  ]
 
 vapoursynth_dep = dependency('vapoursynth').partial_dependency(compile_args: true, includes: true)
 

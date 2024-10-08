@@ -20,14 +20,32 @@
 * Apache License version 2.0 or later.
 ******************************************************************************/
 
+#if __ARM_NEON__
+#include "sse2neon.h"
+
+// limit to 128byte, since we want to use ARM-neon
+#define MAX_VECTOR_SIZE 128
+
+//limit to sse4.2, sse2neon does not have any AVX instructions ( so far )
+#define INSTRSET 6
+
+//define unknown function
+#define _mm_getcsr() 1
+
+//simulate header included
+#define __X86INTRIN_H
+#endif
+// finally include vectorclass
+
 #ifndef INSTRSET_H
-#define INSTRSET_H 20102
+#define INSTRSET_H 20104
 
 
 // Allow the use of floating point permute instructions on integer vectors.
 // Some CPU's have an extra latency of 1 or 2 clock cycles for this, but
 // it may still be faster than alternative implementations:
 #define ALLOW_FP_PERMUTE  true
+
 
 
 // Macro to indicate 64 bit mode
@@ -92,7 +110,11 @@
 #elif INSTRSET == 7
 #include <immintrin.h>                 // AVX
 #elif INSTRSET == 6
+#ifdef __ARM_NEON
+#include "sse2neon.h"
+#else
 #include <nmmintrin.h>                 // SSE4.2
+#endif
 #elif INSTRSET == 5
 #include <smmintrin.h>                 // SSE4.1
 #elif INSTRSET == 4
@@ -246,28 +268,37 @@ constexpr int V_DC = -256;
 // input:  functionnumber = leaf (eax), ecxleaf = subleaf(ecx)
 // output: output[0] = eax, output[1] = ebx, output[2] = ecx, output[3] = edx
 static inline void cpuid(int output[4], int functionnumber, int ecxleaf = 0) {
-#if defined(__GNUC__) || defined(__clang__)           // use inline assembly, Gnu/AT&T syntax
-    int a, b, c, d;
-    __asm("cpuid" : "=a"(a), "=b"(b), "=c"(c), "=d"(d) : "a"(functionnumber), "c"(ecxleaf) : );
-    output[0] = a;
-    output[1] = b;
-    output[2] = c;
-    output[3] = d;
-
-#elif defined (_MSC_VER)                              // Microsoft compiler, intrin.h included
-    __cpuidex(output, functionnumber, ecxleaf);       // intrinsic function for CPUID
-
-#else                                                 // unknown platform. try inline assembly with masm/intel syntax
-    __asm {
-        mov eax, functionnumber
-        mov ecx, ecxleaf
-        cpuid;
-        mov esi, output
-        mov[esi], eax
-        mov[esi + 4], ebx
-        mov[esi + 8], ecx
-        mov[esi + 12], edx
-    }
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
+    // Original x86/x86_64 implementation
+    #if (defined(__GNUC__) || defined(__clang__)) && defined(__x86_64__)
+        int a, b, c, d;
+        __asm("cpuid" : "=a"(a), "=b"(b), "=c"(c), "=d"(d) : "a"(functionnumber), "c"(ecxleaf) : );
+        output[0] = a;
+        output[1] = b;
+        output[2] = c;
+        output[3] = d;
+    #elif defined (_MSC_VER)
+        __cpuidex(output, functionnumber, ecxleaf);
+    #else
+        __asm {
+            mov eax, functionnumber
+            mov ecx, ecxleaf
+            cpuid;
+            mov esi, output
+            mov[esi], eax
+            mov[esi + 4], ebx
+            mov[esi + 8], ecx
+            mov[esi + 12], edx
+        }
+    #endif
+#elif defined(__aarch64__) || defined(__arm__)
+    // Assume NEON support on ARM
+    output[0] = 1; // Indicating support for SSE
+    output[1] = 1; // Indicating support for SSE2
+    output[2] = 1; // Indicating support for SSE3
+    output[3] = 1; // Indicating support for SSSE3, SSE4.1, SSE4.2
+#else
+    #error Unsupported platform
 #endif
 }
 
