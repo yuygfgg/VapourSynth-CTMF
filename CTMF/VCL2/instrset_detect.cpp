@@ -69,8 +69,7 @@ int instrset_detect(void) {
         return iset;                                       // called before
     }
     iset = 0;                                              // default value
-#if defined(__aarch64__) || defined(__arm__)
-    // Assume NEON support on ARM
+#if defined(__ARM_NEON__)
     iset = 6;  // Simulate support for SSE4.2 using NEON
     return iset;
 #else
